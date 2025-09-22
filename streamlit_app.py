@@ -41,8 +41,8 @@ df = pd.read_csv(file_path)  # df 생성
 st.set_page_config(page_title="기후위기 & 청소년 대응 대시보드", layout="wide")
 # 예시: Year -> 연도, 1~12 -> 1월~12월
 df = df.rename(columns={"Year":"연도"})
-month_cols = [f"{i}월" for i in range(1,13)]
-df = df.rename(columns={str(i): f"{i}월" for i in range(1,13) if str(i) in df.columns})
+month_cols = [str(i) for i in range(1, 13)]  # 1~12월
+df_melted = df.melt(id_vars=["연도"], value_vars=month_cols, var_name="월", value_name="폭염일수")
 
 
 # Pretendard 적용 시도 (없으면 자동 생략)

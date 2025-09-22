@@ -30,7 +30,7 @@ import plotly.express as px
 import pandas as pd
 
 # CSV 파일 경로
-file_path = "/workspaces/blank-app-4/data/heatwave_1991_2025.csv"  # 예: 기상청에서 받은 CSV
+file_path = "data/heatwave_1991_2025.csv"  # 예: 기상청에서 받은 CSV
 
 df = pd.read_csv(file_path)  # df 생성
 

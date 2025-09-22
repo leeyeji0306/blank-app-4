@@ -1,6 +1,6 @@
 # streamlit_app.py
 # -*- coding: utf-8 -*-
-"""
+<!-- """
 Streamlit + GitHub Codespaces 데이터 대시보드
 
 구성:
@@ -25,7 +25,7 @@ Streamlit + GitHub Codespaces 데이터 대시보드
   https://power.larc.nasa.gov/docs/services/api/
 - 참고 연구(청소년 자살충동 1°C당 1.3% 증가):
   PubMed: https://pubmed.ncbi.nlm.nih.gov/39441101/
-"""
+""" -->
 
 import io
 import json

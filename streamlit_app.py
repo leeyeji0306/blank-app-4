@@ -32,6 +32,11 @@ import plotly.express as px
 # 기본 설정
 # -----------------------------
 st.set_page_config(page_title="기후위기 & 청소년 대응 대시보드", layout="wide")
+# 예시: Year -> 연도, 1~12 -> 1월~12월
+df = df.rename(columns={"Year":"연도"})
+month_cols = [f"{i}월" for i in range(1,13)]
+df = df.rename(columns={str(i): f"{i}월" for i in range(1,13) if str(i) in df.columns})
+
 
 # Pretendard 적용 시도 (없으면 자동 생략)
 def inject_font_css():

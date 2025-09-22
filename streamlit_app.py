@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
-from dateutil.relativela import relativedelta
+from dateutil.relativedelta import relativedelta
 import plotly.express as px
 
 # -----------------------------

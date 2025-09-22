@@ -240,7 +240,7 @@ def load_user_table():
     keep_cols = ["연도","연합계","순위"]
     for c in month_cols:
         if c not in df.columns: df[c] = np.nan
-    m = df.melt(id_vars=keep_cols + ["연도"], value_vars=month_cols, var_name="월", value_name="폭염일수")
+    m = df.melt(id_vars=keep_cols + ["YEAR"], value_vars=month_cols, var_name="월", value_name="폭염일수")
     m["월_int"] = m["월"].str.replace("월", "", regex=False).astype(int)
     m["date"] = pd.to_datetime(dict(year=m["연도"], month=m["월_int"], day=1)).dt.date
     m["value"] = pd.to_numeric(m["폭염일수"], errors="coerce")

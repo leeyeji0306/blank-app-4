@@ -241,7 +241,7 @@ def load_user_table():
     m["월_int"] = m["월"].str.replace("월", "", regex=False).astype(int)
     m["date"] = pd.to_datetime(dict(year=m["연도"], month=m["월_int"], day=1)).dt.date
     m["value"] = pd.to_numeric(m["폭염일수"], errors="coerce")
-    out = m[["date", "value", "연도"]].rename(columns={"연도": "group"})
+    # out = m[["date", "value", "연도"]].rename(columns={"연도": "group"})
     out = clean_standardize(out, "date", "value", "group")
     out = clamp_to_today(out, "date")
     yr = df[["연도", "연합계", "순위"]].rename(columns={"연도":"year","연합계":"total","순위":"rank"})

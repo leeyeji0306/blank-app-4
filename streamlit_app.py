@@ -1,17 +1,17 @@
 # streamlit_app.py
 # -*- coding: utf-8 -*-
 """
-Streamlit + GitHub Codespaces 데이터 대시보드 (기후위기 정신건강 확장)
+Streamlit + GitHub Codespaces 데이터 대시보드 (기후위기 정신건강/학업 확장)
 
 구성:
 1) 공식 공개 데이터 대시보 (NASA POWER 일일 기온 API, 서울 좌표)
    - (기존과 동일)
 2) 사용자 입력 대시보드 (프롬프트의 "폭염일수" 표 고정 내장)
    - (기존과 동일)
-3) 기후위기 & 청소년 정신건강 (연구 참고) 탭 (★새로운 메뉴)
-   - 기후위기/기온 상승과 우울증/불안 간의 상관관계 연구 결과 인용 및 요약 시각화
-   - 한국 청소년 정신건강 현황(KYRBS 등 통계)을 간접 지표로 제시
-   - 인과 관계 단정 불가 명시
+3) 기후위기 & 청소년 정신건강 (연구 참고) 탭
+   - (기존과 동일)
+4) 기후위기 & 청소년 학업 (연구 참고) 탭 (★새로운 메뉴)
+   - 기온 상승과 학업 성적 하락에 대한 연구 결과 인용 및 가상 지표 시각화
 
 폰트:
 - /fonts/Pretendard-Bold.ttf 존재 시 Streamlit/Plotly에 적용 시도(없으면 자동 생략)
@@ -24,6 +24,8 @@ Streamlit + GitHub Codespaces 데이터 대시보드 (기후위기 정신건강 
 - 추가 연구(기온/폭염 & 우울증/불안):
   Journal of Affective Disorders (중국 청소년): https://doi.org/10.1016/j.jad.2024.03.042
   PubMed (한국 성인): https://pubmed.ncbi.nlm.nih.gov/39242044/
+- 추가 연구(고온 & 학업 성취도):
+  AERJ (미국): https://doi.org/10.3102/0002831219889500
 """
 
 import io
@@ -37,13 +39,13 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
-from dateutil.relativedelta import relativedelta
-import plotly.express as px # Plotly를 전역으로 가져와서 사용
+from dateutil.relativela import relativedelta
+import plotly.express as px
 
 # -----------------------------
 # 기본 설정
 # -----------------------------
-st.set_page_config(page_title="기온·폭염 & 청소년 정신건강(연구참고) 대시보드", layout="wide")
+st.set_page_config(page_title="기온·폭염 & 청소년 정신건강/학업(연구참고) 대시보드", layout="wide")
 
 # Pretendard 적용 시도 (없으면 자동 생략)
 def inject_font_css():
@@ -111,13 +113,55 @@ def download_button_for_df(df, filename, label="CSV 다운로드"):
     csv = df.to_csv(index=False).encode("utf-8-sig")
     st.download_button(label=label, data=csv, file_name=filename, mime="text/csv")
 
+def plot_line(df, title, yaxis_title):
+    if df.empty:
+        st.info("표시할 데이터가 없습니다.")
+        return
+    fig = px.line(
+        df,
+        x="date",
+        y="value",
+        color="group",
+        markers=True,
+        title=title,
+    )
+    fig.update_layout(
+        xaxis_title="날짜",
+        yaxis_title=yaxis_title,
+        legend_title="지표",
+        font=dict(family=PLOTLY_FONT),
+        hovermode="x unified",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_bar(df, title, yaxis_title, barmode="group"):
+    if df.empty:
+        st.info("표시할 데이터가 없습니다.")
+        return
+    fig = px.bar(
+        df,
+        x="date",
+        y="value",
+        color="group",
+        title=title,
+        barmode=barmode,
+    )
+    fig.update_layout(
+        xaxis_title="월",
+        yaxis_title=yaxis_title,
+        legend_title="지표",
+        font=dict(family=PLOTLY_FONT),
+        hovermode="x",
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 # -----------------------------
-# 1) 공개 데이터 대시보드
-# (기존 코드 유지: fetch_nasa_power_daily, make_heatwave_flags, monthly_summary, plot_line, plot_bar, add_risk_annotation)
+# 1) 공개 데이터 대시보드 함수 (기존 유지)
 # -----------------------------
 @st.cache_data(show_spinner=True, ttl=60 * 60)
 def fetch_nasa_power_daily(lat=37.5665, lon=126.9780, start="2015-01-01", end=None):
     """ NASA POWER 일일 기온 데이터 가져오기 """
+    # ... (기존 fetch_nasa_power_daily 함수 내용) ...
     if end is None:
         end = TODAY_DATE.strftime("%Y-%m-%d")
 
@@ -205,48 +249,6 @@ def monthly_summary(df):
     m = m[["date", "value", "group", "year", "month"]]
     return m
 
-def plot_line(df, title, yaxis_title):
-    if df.empty:
-        st.info("표시할 데이터가 없습니다.")
-        return
-    fig = px.line(
-        df,
-        x="date",
-        y="value",
-        color="group",
-        markers=True,
-        title=title,
-    )
-    fig.update_layout(
-        xaxis_title="날짜",
-        yaxis_title=yaxis_title,
-        legend_title="지표",
-        font=dict(family=PLOTLY_FONT),
-        hovermode="x unified",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-def plot_bar(df, title, yaxis_title, barmode="group"):
-    if df.empty:
-        st.info("표시할 데이터가 없습니다.")
-        return
-    fig = px.bar(
-        df,
-        x="date",
-        y="value",
-        color="group",
-        title=title,
-        barmode=barmode,
-    )
-    fig.update_layout(
-        xaxis_title="월",
-        yaxis_title=yaxis_title,
-        legend_title="지표",
-        font=dict(family=PLOTLY_FONT),
-        hovermode="x",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
 def add_risk_annotation():
     st.markdown(
         """
@@ -264,10 +266,8 @@ def add_risk_annotation():
             ),
             language="text",
         )
-
 # -----------------------------
-# 2) 사용자 입력 대시보드 데이터
-# (기존 코드 유지: load_user_table, plot_user_monthly, plot_user_rank)
+# 2) 사용자 입력 대시보드 함수 (기존 유지)
 # -----------------------------
 @st.cache_data(show_spinner=False)
 def load_user_table():
@@ -361,18 +361,14 @@ def plot_user_rank(yr):
     )
     st.plotly_chart(fig, use_container_width=True)
 
+
 # -----------------------------
-# 3) 기후위기 & 청소년 정신건강 대시보드 (신규 추가)
+# 3) 기후위기 & 청소년 정신건강 대시보드 함수 (기존 유지)
 # -----------------------------
 @st.cache_data(show_spinner=False)
 def get_mental_health_indicators():
-    """
-    청소년 정신건강 관련 주요 통계/연구 결과 요약 데이터를 반환
-    실제 시계열 데이터 대신, 검색된 주요 연구 결과 및 한국 통계를 인용하여 구성
-    """
+    """ 청소년 정신건강 관련 주요 통계/연구 결과 요약 데이터를 반환 (연구 인용 기반)"""
     # 1. 기후위기 관련 연구 결과 (비교 지표)
-    # 중국 청소년 폭염 vs 우울증/불안 (폭염 강도 1단위 증가당)
-    # 한국 성인 (19-40세, 도시 거주) 기온 1°C 증가 vs 우울 증상 (1961-1990 대비)
     research_indicators = pd.DataFrame([
         {"지표": "폭염 vs 우울증 위험 증가", "단위": "%", "값": 13, "출처": "연구(중국 청소년)", "설명": "폭염 강도 1단위 증가당"},
         {"지표": "폭염 vs 불안 위험 증가", "단위": "%", "값": 12, "출처": "연구(중국 청소년)", "설명": "폭염 강도 1단위 증가당"},
@@ -394,7 +390,7 @@ def get_mental_health_indicators():
         id_vars=["연도", "date"], 
         value_vars=["우울감 경험률(%)", "자살 생각률(%)"],
         var_name="group", 
-        value_name="value"
+        value_name="value_perc"
     ).rename(columns={"value": "value_perc"})
 
     return research_indicators, melted_kyrbs
@@ -422,6 +418,106 @@ def plot_kyrbs_trend(df):
     )
     st.plotly_chart(fig, use_container_width=True)
 
+# -----------------------------
+# 4) 기후위기 & 청소년 학업 대시보드 함수 (신규 추가)
+# -----------------------------
+@st.cache_data(show_spinner=False)
+def get_academic_indicators():
+    """ 기온 상승과 학업 성적 관련 주요 연구 결과 및 가상 시계열 데이터 생성 """
+    
+    # 1. 기후위기 관련 연구 결과 (비교 지표)
+    academic_indicators = pd.DataFrame([
+        {"지표": "기온 1°C↑ vs 학업 성취도 하락", "단위": "%", "값": 1, "출처": "연구(미국, 에어컨X 교실)", "설명": "외부 온도가 $1^\circ \text{C}$ 상승 시"},
+    ])
+
+    # 2. 가상 시계열 지표: 고온 학습 손실 지수 및 학업 성취도 변화율
+    # 연도별 수치는 고온 영향 증가를 가정한 예시값
+    start_year = 2018
+    end_year = TODAY_DATE.year
+    
+    academic_data = pd.DataFrame({
+        "연도": range(start_year, end_year + 1),
+    })
+    
+    # 가상의 고온 학습 손실 지수 (0-100)
+    np.random.seed(45)
+    base_loss = 10
+    loss_increase = np.linspace(0, 15, len(academic_data)) # 시간이 갈수록 영향 증가 가정
+    noise = np.random.normal(0, 3, len(academic_data))
+    
+    academic_data["고온 학습 손실 지수(가상)"] = (base_loss + loss_increase + noise).clip(0, 30).round(1)
+
+    # 가상의 학업 성취도 변화율 (전년 대비 %p, 음수=하락)
+    np.random.seed(46)
+    base_change = np.linspace(1.0, -1.0, len(academic_data)) # 장기적으로 하락 경향 가정
+    change_noise = np.random.normal(0, 0.5, len(academic_data))
+    
+    academic_data["학업 성취도 변화율(%p, 가상)"] = (base_change + change_noise).round(2)
+
+    academic_data["date"] = pd.to_datetime(dict(year=academic_data["연도"], month=1, day=1)).dt.date
+    academic_data = clamp_to_today(academic_data, "date")
+    
+    # 시각화를 위한 Melt
+    melted_academic = academic_data.melt(
+        id_vars=["연도", "date"], 
+        value_vars=["고온 학습 손실 지수(가상)", "학업 성취도 변화율(%p, 가상)"],
+        var_name="group", 
+        value_name="value"
+    )
+
+    return academic_indicators, melted_academic
+
+def plot_academic_trend(df):
+    """ 학업 관련 가상 지표 추이 """
+    if df.empty:
+        st.info("학업 관련 지표 데이터가 없습니다.")
+        return
+    
+    # 지표 분리 (Y축 스케일이 다르기 때문에)
+    loss_df = df[df["group"] == "고온 학습 손실 지수(가상)"]
+    change_df = df[df["group"] == "학업 성취도 변화율(%p, 가상)"]
+    
+    # 두 개의 그래프로 시각화
+    # 1. 고온 학습 손실 지수
+    fig1 = px.bar(
+        loss_df,
+        x="연도",
+        y="value",
+        title="고온 학습 손실 지수 추이 (가상 지표)",
+        color_discrete_sequence=['#ff7f0e'] # 주황색 계열
+    )
+    fig1.update_layout(
+        xaxis_title="연도",
+        yaxis_title="학습 손실 지수 (0-100)",
+        font=dict(family=PLOTLY_FONT),
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+
+    # 2. 학업 성취도 변화율
+    fig2 = px.line(
+        change_df,
+        x="연도",
+        y="value",
+        markers=True,
+        title="학업 성취도 변화율 추이 (전년 대비 %p, 가상 지표)",
+        color_discrete_sequence=['#1f77b4'] # 파란색 계열
+    )
+    fig2.update_traces(name="학업 성취도 변화율", showlegend=True)
+    fig2.update_layout(
+        xaxis_title="연도",
+        yaxis_title="변화율 (%p)",
+        font=dict(family=PLOTLY_FONT),
+        shapes=[
+            dict(
+                type='line',
+                xref='paper', yref='y',
+                x0=0, x1=1, y0=0, y1=0,
+                line=dict(color='Red', width=1, dash='dash')
+            )
+        ],
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+
 
 # -----------------------------
 # 사이드바
@@ -433,7 +529,7 @@ with st.sidebar:
 # -----------------------------
 # 탭 구성
 # -----------------------------
-tab1, tab2, tab3 = st.tabs(["📡 공개 데이터 대시보드 (NASA POWER, 서울)", "📘 사용자 입력 대시보드 (폭염일수)", "🧠 기후위기 & 청소년 정신건강(연구참고)"])
+tab1, tab2, tab3, tab4 = st.tabs(["📡 공개 데이터 대시보드", "📘 사용자 입력 대시보드", "🧠 기후위기 & 청소년 정신건강(연구참고)", "📚 기후위기 & 청소년 학업(연구참고)"])
 
 with tab1:
     st.subheader("서울 일별 기온 & 폭염일 (NASA POWER)")
@@ -451,26 +547,21 @@ with tab1:
     if data["fallback"].any():
         st.warning("API 호출 실패로 예시 데이터가 표시됩니다. (네트워크/서비스 상태 확인 필요)")
 
-    # 폭염일 플래그 시계열
     hw = make_heatwave_flags(data, threshold_max=hw_threshold)
-
-    # 표준화 테이블 병합(기온 + 폭염일)
     std = pd.concat([data[["date","value","group"]], hw[["date","value","group"]]], ignore_index=True)
     std = clean_standardize(std, "date", "value", "group")
 
-    # 기간 슬라이더(월 단위)
     if not std.empty:
         min_d = pd.to_datetime(std["date"]).min().date()
         max_d = pd.to_datetime(std["date"]).max().date()
-        # 사이드바 옵션으로 이동
+        
         with st.sidebar:
             st.markdown("#### 공개 데이터 기간 필터")
             rng = st.slider("표시 기간 선택", min_value=min_d, max_value=max_d, value=(min_d, max_d), key="tab1_rng")
             smooth_win = st.select_slider("이동평균 윈도우(일, 기온에만 적용)", options=[1,3,5,7,14], value=3, key="tab1_smooth")
         
         std = std[(std["date"] >= rng[0]) & (std["date"] <= rng[1])]
-
-        # 스무딩(이동평균, 기온만)
+        
         if smooth_win > 1 and not std.empty:
             gtemp = std["group"].isin(["일 평균기온(℃)","일 최고기온(℃)"])
             std.loc[gtemp, "value"] = (
@@ -480,29 +571,18 @@ with tab1:
                 .transform(lambda s: s.rolling(smooth_win, min_periods=1).mean())
             )
 
-    # 시각화
     plot_line(std[std["group"].isin(["일 평균기온(℃)", "일 최고기온(℃)"])], "일별 기온 추이", "기온(℃)")
-
     msum = monthly_summary(pd.concat([data[["date","value","group"]], hw], ignore_index=True))
-    # 월별 폭염일수 & 월평균/월평균최고
     monthly_heat = msum[msum["group"].str.startswith("폭염일")]
     monthly_temp = msum[~msum["group"].str.startswith("폭염일")]
-
     plot_bar(monthly_heat, "월별 폭염일수(합계)", "폭염일수(일)")
     plot_line(monthly_temp, "월별 평균 기온/최고기온(평균)", "기온(℃)")
 
-    # 참고 연구 안내
     add_risk_annotation()
-    st.info(
-        "※ 본 대시보드는 **기온·폭염과 정신건강 지표 간 상관성**에 대한 참고 탐색용입니다. "
-        "인과관계를 단정하지 않으며, 지역·연령·제도 차이에 따라 결과 해석에 주의가 필요합니다."
-    )
+    st.info("※ 본 대시보드는 **기온·폭염과 정신건강 지표 간 상관성**에 대한 참고 탐색용입니다. 인과관계를 단정하지 않으며, 지역·연령·제도 차이에 따라 결과 해석에 주의가 필요합니다.")
 
-    # 다운로드(표준화 테이블)
     st.markdown("#### 전처리된 표 다운로드")
     download_button_for_df(std[["date","value","group"]].sort_values(["date","group"]), "nasa_power_standardized.csv", "CSV 다운로드 (공개 데이터)")
-
-    # 주석으로 출처 URL 남김
     st.caption("주석: NASA POWER API 문서 URL은 코드 주석에 기재되어 있습니다. (앱 상단 주석 참조)")
 
 with tab2:
@@ -511,7 +591,6 @@ with tab2:
 
     user_long, user_year = load_user_table()
 
-    # 사이드바/옵션
     if not user_long.empty:
         y_min = int(pd.to_datetime(user_long["date"]).dt.year.min())
         y_max = int(pd.to_datetime(user_long["date"]).dt.year.max())
@@ -523,19 +602,16 @@ with tab2:
         view_df = user_long[(pd.to_datetime(user_long["date"]).dt.year >= y_start) & (pd.to_datetime(user_long["date"]).dt.year <= y_end)]
     else:
         view_df = user_long
-        smooth_months = 1 # 옵션이 없으므로 기본값 설정
+        smooth_months = 1 
 
-    # 스무딩(월 이동평균, 각 연도별)
     if smooth_months > 1 and not view_df.empty:
         view_df = view_df.sort_values(["group","date"]).copy()
         view_df["value"] = view_df.groupby("group")["value"].transform(lambda s: s.rolling(smooth_months, min_periods=1).mean())
 
-    # 시각화
     plot_user_monthly(view_df)
     st.markdown("---")
     plot_user_rank(user_year)
 
-    # 표준화 표 미리보기 & 다운로드
     st.markdown("#### 전처리된 표 (표준화: date, value, group)")
     st.dataframe(view_df.sort_values(["date","group"]), use_container_width=True)
     download_button_for_df(view_df.sort_values(["date","group"]), "user_heatdays_standardized.csv", "CSV 다운로드 (사용자 데이터)")
@@ -546,11 +622,9 @@ with tab3:
 
     research_df, kyrbs_df = get_mental_health_indicators()
 
-    # 1. 주요 연구 인용 요약
     st.markdown("#### 🌡️ 기온 변화와 정신건강 위험도 증가 (주요 연구 인용)")
     
     col1, col2, col3 = st.columns(3)
-    
     with col1:
         st.metric(
             label=f"{research_df.iloc[0]['지표']} ({research_df.iloc[0]['설명']})",
@@ -572,23 +646,74 @@ with tab3:
 
     st.markdown("---")
     
-    # 2. 한국 청소년 정신건강 주요 지표 추이 (가상 데이터)
     st.markdown("#### 🇰🇷 한국 청소년 정신건강 현황 추이 (KYRBS 기반 예시)")
     plot_kyrbs_trend(kyrbs_df)
 
-    # 3. 상세 연구 출처 및 유의 사항
     st.markdown("#### 💡 데이터 유의 사항 및 연구 출처")
     st.warning(
-        "**주의:** 제시된 '한국 청소년 정신건강 현황 추이'는 실제 KYRBS 데이터의 대략적인 경향을 기반으로 **임의로 생성된 예시 데이터**입니다. "
-        "기후변화와 정신건강 간의 **인과관계**가 아닌, **상관관계 및 잠재적 위험 증가**를 보여주는 참고 지표로만 활용해야 합니다."
+        "**주의:** 이 탭의 데이터는 실제 공개 시계열이 아닌 **연구 인용 및 임의로 생성된 예시 데이터**입니다. 인과관계 단정을 피하고 참고 지표로만 활용해야 합니다."
     )
     with st.expander("참고 문헌 (주석)", expanded=False):
         st.markdown(
             """
             * **기존 연구 (청소년 자살충동 vs 기온):** PubMed: https://pubmed.ncbi.nlm.nih.gov/39441101/
-            * **폭염 vs 우울증/불안 (중국 청소년):** Journal of Affective Disorders (2024). 폭염 강도 1단위 증가당 우울증 13%, 불안 12% 증가.
-            * **기온 1°C↑ vs 우울 증상 (한국 성인 19-40세):** PubMed (2024). 연평균 기온 1°C 증가당 우울 증상 14% 증가 (도시 거주).
-            * **한국 청소년 정신건강 현황:** 교육부/질병관리청 **청소년건강행태조사(KYRBS)**의 공표 통계(예: 우울감 경험률, 자살 생각률)를 참고하여 임의의 시계열 예시 데이터를 생성했습니다.
+            * **폭염 vs 우울증/불안 (중국 청소년):** Journal of Affective Disorders (2024). 
+            * **기온 1°C↑ vs 우울 증상 (한국 성인 19-40세):** PubMed (2024). 
+            * **한국 청소년 정신건강 현황:** 청소년건강행태조사(KYRBS)의 공표 통계를 참고하여 임의의 시계열 예시 데이터를 생성했습니다.
+            """
+        )
+
+with tab4:
+    st.subheader("📚 기후위기 & 청소년 학업 성취도(연구 참고)")
+    st.caption("고온 환경이 학생들의 학습 능력에 미치는 영향을 다루는 해외 연구 결과를 인용하고, 가상 지표를 통해 영향을 탐색합니다.")
+
+    academic_df, academic_melted_df = get_academic_indicators()
+    
+    # 1. 주요 연구 인용 요약
+    st.markdown("#### 🌡️ 고온 노출과 학업 성취도 하락 (주요 연구 인용)")
+    
+    col_학업1, col_학업2, col_학업3 = st.columns(3)
+    
+    with col_학업1:
+        st.metric(
+            label=f"{academic_df.iloc[0]['지표']} ({academic_df.iloc[0]['설명']})",
+            value=f"-{academic_df.iloc[0]['값']}{academic_df.iloc[0]['단위']}",
+            help=f"출처: {academic_df.iloc[0]['출처']}"
+        )
+    with col_학업2:
+        st.metric(
+            label="연구 인용",
+            value="👇",
+            help="여름철 더위가 학생들의 학습 집중력과 기억력에 부정적 영향을 미침"
+        )
+    with col_학업3:
+        # 가상의 지표로 채우기
+        st.metric(
+            label="고온 학습 손실 지수",
+            value=f"{academic_melted_df[academic_melted_df['연도'] == academic_melted_df['연도'].max()]['value'].iloc[0].round(1)}",
+            delta=f"{(academic_melted_df[academic_melted_df['연도'] == academic_melted_df['연도'].max()]['value'].iloc[0] - academic_melted_df[academic_melted_df['연도'] == academic_melted_df['연도'].min()]['value'].iloc[0]).round(1)}",
+            delta_color="inverse", # 값이 높을수록 위험하므로 반전
+            help="가상 지표: 최근 연도 '고온 학습 손실 지수' (최소 연도 대비 변화)"
+        )
+
+    st.markdown("---")
+
+    # 2. 가상 시계열 지표 시각화
+    st.markdown("#### 📈 고온 노출 관련 가상 학업 지표 추이")
+    plot_academic_trend(academic_melted_df)
+
+
+    # 3. 상세 연구 출처 및 유의 사항
+    st.markdown("#### 💡 데이터 유의 사항 및 연구 출처")
+    st.warning(
+        "**주의:** 이 탭의 데이터는 실제 한국의 학업 성적 통계가 아닌, **해외 연구 인용 및 고온 영향 시나리오를 가정한 임의의 시계열 예시 데이터**입니다. "
+        "기온 상승과 학업 성적 하락의 **상관관계**를 참고하는 용도로만 활용해야 합니다."
+    )
+    with st.expander("참고 문헌 (주석)", expanded=False):
+        st.markdown(
+            """
+            * **기온 1°C↑ vs 학업 성취도 하락:** AERJ (2020) 논문 등. 에어컨이 없는 미국 교실 대상 연구에서 고온 노출과 학업 성취도 하락 간의 유의미한 상관관계 발견.
+            * **가상 지표:** 고온 학습 손실 지수 및 학업 성취도 변화율은 **해당 연구 결과를 바탕으로 영향을 시뮬레이션한 임의의 값**입니다.
             """
         )
 
